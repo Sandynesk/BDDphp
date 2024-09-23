@@ -1,0 +1,115 @@
+-- Criar o banco de dados
+CREATE DATABASE IF NOT EXISTS SandyneskATV;
+
+USE SandyneskATV;
+
+-- Tabela de Usuários
+CREATE TABLE IF NOT EXISTS Usuarios (
+    id_usuario INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Restaurantes
+CREATE TABLE IF NOT EXISTS Restaurantes (
+    id_restaurante INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    endereco VARCHAR(255) NOT NULL,
+    tipo_cozinha VARCHAR(100),
+    data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Avaliações
+CREATE TABLE IF NOT EXISTS Avaliacoes (
+    id_avaliacao INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT,
+    id_restaurante INT,
+    nota INT CHECK (nota BETWEEN 1 AND 5),
+    comentario TEXT,
+    data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES Usuarios(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_restaurante) REFERENCES Restaurantes(id_restaurante) ON DELETE CASCADE
+);
+
+-- Tabela para log de erros (opcional)
+CREATE TABLE IF NOT EXISTS ErrosLog (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    mensagem TEXT,
+    data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER //
+
+-- Procedimento para calcular a média de classificação
+CREATE PROCEDURE CalcularMediaClassificacao(IN p_id_restaurante INT, OUT p_media FLOAT)
+BEGIN
+    SELECT AVG(nota) INTO p_media
+    FROM Avaliacoes
+    WHERE id_restaurante = p_id_restaurante;
+
+    -- Se não houver avaliações, retorna 0
+    IF p_media IS NULL THEN
+        SET p_media = 0;
+    END IF;
+END //
+
+DELIMITER ;
+
+-- View para relatório de média de cozinha
+CREATE VIEW RelatorioMediaCozinha AS
+SELECT 
+    r.tipo_cozinha,
+    AVG(a.nota) AS media_classificacao
+FROM 
+    Restaurantes r
+LEFT JOIN 
+    Avaliacoes a ON r.id_restaurante = a.id_restaurante
+GROUP BY 
+    r.tipo_cozinha
+ORDER BY 
+    r.tipo_cozinha;
+
+-- Restrições de unicidade na tabela de avaliações
+ALTER TABLE Avaliacoes
+ADD CONSTRAINT uq_usuario_restaurante UNIQUE (id_usuario, id_restaurante);
+
+DELIMITER //
+
+-- Procedimento para avaliar restaurante
+CREATE PROCEDURE AvaliarRestaurante(
+    IN p_id_usuario INT,
+    IN p_id_restaurante INT,
+    IN p_nota INT,
+    IN p_comentario TEXT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        -- Em caso de erro, faz rollback
+        ROLLBACK;
+        INSERT INTO ErrosLog (mensagem) VALUES ('Erro ao inserir avaliação');
+    END;
+
+    -- Inicia a transação
+    START TRANSACTION;
+
+    -- Insere a avaliação
+    INSERT INTO Avaliacoes (id_usuario, id_restaurante, nota, comentario)
+    VALUES (p_id_usuario, p_id_restaurante, p_nota, p_comentario);
+
+    -- Comita a transação
+    COMMIT;
+END //
+
+DELIMITER ;
+
+
+CALL AvaliarRestaurante(1, 1, 5, 'Excelente comida!');
+
+
+SELECT * FROM Avaliacoes;
+SELECT * FROM Usuarios;
+SELECT * FROM Restaurantes;
+

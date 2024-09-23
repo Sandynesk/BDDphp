@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avalie um Restaurante</title>
+    <link rel="stylesheet" href="Avaliar.css">
+</head>
+<body>
+    <h1>Avalie um Restaurante</h1>
+    <form id="avaliacaoForm">
+        <input type="hidden" name="id_usuario" value="1"> <!-- ID do usuário -->
+        <label for="id_restaurante">ID do Restaurante:</label>
+        <input type="number" name="id_restaurante" required>
+
+        <label for="nota">Nota (1-5):</label>
+        <input type="number" name="nota" min="1" max="5" required>
+
+        <label for="comentario">Comentário:</label>
+        <textarea name="comentario" required></textarea>
+
+        <button type="submit">Enviar Avaliação</button>
+    </form>
+
+    <div id="resultado"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
